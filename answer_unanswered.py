@@ -223,6 +223,13 @@ def build_query_dict(category: str, raw_type: str, text: str) -> dict | None:
             "start": dm.group(1),
             "end":   dm.group(2),
         }
+        
+    elif qtype == "UNIQUE_CREATORS_COMPOUND":
+        start, end = _extract_created_range(text)
+        if not start:
+            log(f"    Could not extract date range from: {text[:80]}…")
+            return None
+        params = {"start": start, "end": end}
 
     else:
         log(f"    Unhandled type: '{qtype}'")

@@ -39,6 +39,7 @@ QUESTION TYPES & REQUIRED PARAMS
   TOP_ANSWER_AUTHOR       start, end
   TOP_REPLIER             start, end
   UNIQUE_CREATORS         start, end
+  UNIQUE_CREATORS_COMPOUND start, end → "<count>-<latest_topic_id>"
   TAG_COUNT               tag, start, end
   TAG_COUNT_COMPOUND      tag, start, end   → "<count>-<latest_topic_id>"
 
@@ -96,6 +97,7 @@ QUESTION_TYPES = {
     "UNIQUE_CREATORS",
     "TAG_COUNT",
     "TAG_COUNT_COMPOUND",
+    "UNIQUE_CREATORS_COMPOUND",
 }
 
 # ─────────────────────────────────────────────────────────────
@@ -509,6 +511,39 @@ class QueryEngine:
             return "0-None"
         latest = max(matched, key=lambda t: t.get("created_at", ""))
         return f"{len(matched)}-{latest['id']}"
+    
+    def _unique_creators_compound(self, topics, posts, p):
+        """
+        Returns '<count>-<latest_topic_id>' for unique OPs in [start, end].
+        latest_topic_id is the topic ID of the most recently created matching topic.
+        """
+        start = norm_start(p["start"])
+        end   = cap_end(norm_end(p["end"]))
+        
+        matched_topics = []
+        for t in topics:
+            if not in_range(t.get("created_at", ""), start, end):
+                continue
+            # check has at least one post (to get OP username)
+            for post in posts.get(t["id"], []):
+                if post.get("post_number") == 1:
+                    matched_topics.append(t)
+                    break
+        
+        if not matched_topics:
+            return "0-None"
+        
+        # Count unique creators
+        creators = set()
+        for t in matched_topics:
+            for post in posts.get(t["id"], []):
+                if post.get("post_number") == 1:
+                    creators.add(post.get("username", "").lower())
+                    break
+        
+        # Find latest topic by created_at
+        latest = max(matched_topics, key=lambda t: t.get("created_at", ""))
+        return f"{len(creators)}-{latest['id']}"
 
 
 # ─────────────────────────────────────────────────────────────
