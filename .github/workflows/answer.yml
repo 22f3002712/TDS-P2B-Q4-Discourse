@@ -1,0 +1,35 @@
+name: Answer Unanswered Questions
+
+on:
+  repository_dispatch:
+    types: [form_submitted]
+  workflow_dispatch:        # also allows manual trigger from GitHub UI
+
+jobs:
+  answer:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install gspread google-auth requests
+
+      - name: Write credentials file
+        run: echo '${{ secrets.GOOGLE_CREDENTIALS }}' > credentials.json
+
+      - name: Run answer_unanswered.py
+        run: python answer_unanswered.py
+
+      - name: Run buildMasterTable via Apps Script API
+        run: |
+          curl -X POST \
+            "https://script.googleapis.com/v1/scripts/${{ secrets.APPS_SCRIPT_ID }}:run" \
+            -H "Authorization: Bearer ${{ secrets.APPS_SCRIPT_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{"function": "buildMasterTable"}'

@@ -1,0 +1,6 @@
+discourse_cache
+downloads
+credentials.json
+query_log.txt
+Google
+__pycache__
